@@ -16,3 +16,6 @@ https://www.php.cn/faq/120607.html
 
 关于一些算法的解析
 https://www.codezealot.org/
+
+
+https://cherry-white.github.io/posts/d8819d45.html
