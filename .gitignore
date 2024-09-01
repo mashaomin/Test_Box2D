@@ -12,3 +12,7 @@ Assembly-CSharp-vs.csproj
 *.tmp
 *.user
 *.userprefs
+ProjectSettings/
+*.vsconfig
+
+Box2DLiteUnity3D/Logs
