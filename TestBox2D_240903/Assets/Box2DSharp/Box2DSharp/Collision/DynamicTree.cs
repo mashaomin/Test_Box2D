@@ -11,6 +11,9 @@ using Box2DSharp.Dynamics.Internal;
 
 namespace Box2DSharp.Collision
 {
+    /// <summary>
+    /// https://blog.csdn.net/cg0206/article/details/8293049
+    /// </summary>
     public class DynamicTree
     {
         public const int NullNode = -1;
@@ -47,6 +50,7 @@ namespace Box2DSharp.Collision
             _freeList = 0;
         }
 
+        // 从内存池中申请一个及诶点，如果必要增大内存池
         private int AllocateNode()
         {
             // Expand the node pool as needed.
@@ -90,6 +94,7 @@ namespace Box2DSharp.Collision
             return nodeId;
         }
 
+        // 释放节点
         private void FreeNode(int nodeId)
         {
             Debug.Assert(0 <= nodeId && nodeId < _nodeCapacity);
@@ -216,7 +221,7 @@ namespace Box2DSharp.Collision
             Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
             return _treeNodes[proxyId].Moved;
         }
-
+        
         public void ClearMoved(int proxyId)
         {
             Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
@@ -224,6 +229,7 @@ namespace Box2DSharp.Collision
         }
 
         /// Get the fat AABB for a proxy.
+        /// 根据代理iD获取最大的AABB
         public AABB GetFatAABB(int proxyId)
         {
             Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
@@ -234,6 +240,7 @@ namespace Box2DSharp.Collision
 
         /// Query an AABB for overlapping proxies. The callback class
         /// is called for each proxy that overlaps the supplied AABB.
+        /// 查询一个AABB的重叠代理，每个重叠提供AABB的代理都将回调
         public void Query(in ITreeQueryCallback callback, in AABB aabb)
         {
             var stack = _queryStack;
@@ -541,6 +548,7 @@ namespace Box2DSharp.Collision
             }
         }
 
+        // 插入叶子结点
         private void InsertLeaf(int leaf)
         {
             if (_root == NullNode)
@@ -734,6 +742,7 @@ namespace Box2DSharp.Collision
             //Validate();
         }
 
+        // 如果子树不平衡，泽执行一个向左边或者向右的旋转
         private int Balance(int iA)
         {
             Debug.Assert(iA != NullNode);
@@ -935,6 +944,7 @@ namespace Box2DSharp.Collision
             ValidateStructure(child2);
         }
 
+        // 验证子树的度量
         private void ValidateMetrics(int index)
         {
             if (index == NullNode)

@@ -60,6 +60,7 @@ namespace bluebean.Box2DLite
 
         /// <summary>
         /// 将incidentBox上的碰撞边数据根据ReferenceBox sideNormal上两条边进行裁剪
+        /// 裁剪算法
         /// </summary>
         /// <param name="vOut">输出的碰撞边数据</param>
         /// <param name="vIn">输入的碰撞边数据</param>
@@ -115,6 +116,8 @@ namespace bluebean.Box2DLite
 
         /// <summary>
         /// 返回incident box的碰撞边的顶点,顶点设置顺序保证是逆时针
+        /// 找出碰撞边(incident edge) 用于计算一个多边形相对于另一个多边形的最接近的边
+        /// 当确定了最小分离轴（即两个形状之间的最小分离距离）根据这个分离轴，计算出在两个多边形接触时，被裁剪的边。这个被裁剪的边就是“碰撞边”
         /// </summary>
         /// <param name="clipVertices">返回的incident box的碰撞边的顶点</param>
         /// <param name="size">incident box的尺寸</param>
@@ -190,7 +193,7 @@ namespace bluebean.Box2DLite
         public static int CollideTest(Contact[] contacts, Body bodyA, Body bodyB)
         {
             // Setup
-            Vec2 hA = bodyA.m_size * 0.5f;//half size
+            Vec2 hA = bodyA.m_size * 0.5f; //half size
             Vec2 hB = bodyB.m_size * 0.5f;
 
             Vec2 posA = bodyA.m_position;
@@ -350,7 +353,7 @@ namespace bluebean.Box2DLite
             }
             foreach (var clipVertex in incidentEdge)
             {
-               //DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(1,0,0,0.1f));
+               DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(0.0f,0.5f,0,0.1f));
             }
             //Step 3
             // clip other face with 5 box planes (1 face plane, 4 edge planes)
@@ -372,7 +375,7 @@ namespace bluebean.Box2DLite
                 return 0;
             foreach (var clipVertex in clipPoints2)
             {
-                //DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(1, 0, 0, 0.5f));
+                DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(1, 0, 0, 0.5f));
             }
             // Now clipPoints2 contains the clipping points.
             // Due to roundoff, it is possible that clipping removes all points.

@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
 using Vec2 = bluebean.Box2DLite.Vec2;
-
+using Color = UnityEngine.Color;
 namespace bluebean.Box2DLite
 {
     public struct DDVertex
@@ -30,6 +31,14 @@ namespace bluebean.Box2DLite
         }
     }
 
+    public struct DDAxis 
+    {
+        Axis axis;
+        float separation;
+        Vec2 normal;
+    }
+
+
     public class DebugDraw
     {
         private DebugDraw()
@@ -45,7 +54,7 @@ namespace bluebean.Box2DLite
 
         private List<DDVertex> m_vertexListBatch = new List<DDVertex>();
         private List<DDVertex> m_lineListBatch = new List<DDVertex>();
-
+        
         private void CreateLineMaterial()
         {
             //如果材质球不存在
@@ -125,11 +134,13 @@ namespace bluebean.Box2DLite
 
         public void DrawLine(Vec2 p1, Vec2 p2, Color color)
         {
+            DebugDraw01.Instance.DrawLine(p1, p2, color);
             m_lineListBatch.Add(DDVertex.FromLine(p1, p2, color));
         }
 
         public void DrawBox(Vec2 center, Vec2 size, float rotation, Color color)
         {
+            DebugDraw01.Instance.DrawBox(center, size, rotation, color);
             Mat22 mR = new Mat22(rotation);
             Vec2 halfSize = size * 0.5f;
             Vec2 p1 = new Vec2(halfSize.x, halfSize.y);
@@ -152,7 +163,13 @@ namespace bluebean.Box2DLite
 
         public void DrawPoint(Vec2 point, Color color)
         {
+            DebugDraw01.Instance.DrawPoint(point, color);
             m_vertexListBatch.Add(DDVertex.FromPoint(point, color));
+        }
+
+        public void SetData1(Axis axis,float separation, Vec2 normal)
+        {
+
         }
 
         public void DrawSingleArrowLine(Vec2 start, Vec2 end,float arrowLen, Color color)
