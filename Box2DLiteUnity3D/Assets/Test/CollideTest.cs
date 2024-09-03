@@ -12,6 +12,12 @@ namespace bluebean.Box2DLite
         Contact[] contacts = new Contact[2];
         int contactCount = 0;
 
+        private void Awake()
+        {
+            contacts[0] = new Contact();
+            contacts[1] = new Contact();
+        }
+
         void Update()
         {
             debugDraw.Clear();
@@ -29,7 +35,7 @@ namespace bluebean.Box2DLite
 
         void ProcessInput()
         {
-            /*
+
             if (Input.GetKey(KeyCode.A))
             {
                 body1.m_position.x -= 0.01f;
@@ -54,8 +60,8 @@ namespace bluebean.Box2DLite
             {
                 body1.m_rotation -= 0.01f;
             }
-            */
-            if (Input.GetKey(KeyCode.Keypad4))
+
+            /*if (Input.GetKey(KeyCode.Keypad4))
             {
                 body2.m_position.x -= 0.01f;
             }
@@ -78,7 +84,7 @@ namespace bluebean.Box2DLite
             if (Input.GetKey(KeyCode.Keypad7))
             {
                 body2.m_rotation -= 0.01f;
-            }
+            }*/
         }
 
         void OnPostRender()
