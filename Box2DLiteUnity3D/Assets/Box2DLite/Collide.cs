@@ -203,13 +203,18 @@ namespace bluebean.Box2DLite
             Mat22 RotB = new Mat22(bodyB.m_rotation);
 
             //对于二维旋转矩阵，矩阵的转置等于矩阵的逆
+            //RotA.Transpose() 将全局坐标系中的向量转换到 bodyA 的局部坐标系
             Mat22 RotAT = RotA.Transpose();
             Mat22 RotBT = RotB.Transpose();
 
             Vec2 dp = posB - posA;//全局坐标系中，由BodyA指向BodyB的向量
-            Vec2 dA = RotAT * dp;//BodyA的本地坐标系中，由BodyA指向BodyB的向量
-            Vec2 dB = RotBT * dp;//BodyB的本地坐标系中，由BodyA指向BodyB的向量
 
+            //DebugDraw.Instance.DrawLine(posB, posA, Color.white);
+
+            Vec2 dA = RotAT * dp;//BodyA的本地坐标系中，由BodyA指向BodyB的向量
+            //DebugDraw.Instance.DrawLine(Vec2.Zero, dA, Color.white);
+            Vec2 dB = RotBT * dp;//BodyB的本地坐标系中，由BodyA指向BodyB的向量
+            //DebugDraw.Instance.DrawLine(Vec2.Zero, dB, Color.black);
             Mat22 C = RotAT * RotB;
             Mat22 absC = C.Abs();
             Mat22 absCT = absC.Transpose();
@@ -234,7 +239,9 @@ namespace bluebean.Box2DLite
             float separation;
             Vec2 normal;
 
+            
             // Box A faces
+            // 分离轴+分离距离+分离法线
             axis = Axis.FACE_A_X;
             separation = faceA.x;
             //B在A的右方，分离法线是A的X轴方向，由A指向B
@@ -274,9 +281,17 @@ namespace bluebean.Box2DLite
                 //或者B在A的下方，分离法线是B的-Y轴方向，由A指向B
                 normal = dB.y > 0.0f ? RotB.col2 : -RotB.col2;
             }
+
+            // 分离轴axis
+
+            // 分离法线 
+            //DebugDraw.Instance.DrawNormal(Vec2.Zero, normal, Color.red);
+            //分离距离 separation
+            TestInfo.Instance.Separation = separation;
+
             // Step 2
             // Setup clipping plane data based on the separating axis
-            //根据最小分离轴，决定了一个是referenceBox,另一个是incidentBox
+            //根据最小分离轴，决定了一个是referenceBox,另一个是incidentBox --> body01=incidentBox body02=referenceBox ？
             //获取incident上的碰撞边的数据
             //由referenceBox指向incidnetBox的法线
             Vec2 frontNormal = new Vec2();
@@ -311,14 +326,14 @@ namespace bluebean.Box2DLite
 
                 case Axis.FACE_A_Y:
                     {
-                        frontNormal = normal;
-                        front = Vec2.Dot(posA, frontNormal) + hA.y;
-                        sideNormal = RotA.col1;
-                        float side = Vec2.Dot(posA, sideNormal);
-                        negSide = -side + hA.x;
-                        posSide = side + hA.x;
+                        frontNormal = normal; //(0,1) 向上
+                        front = Vec2.Dot(posA, frontNormal) + hA.y; // A=Boy01 A.Font=e1（上边）
+                        sideNormal = RotA.col1;                     // sideNormal = 右边 (1,0)
+                        float side = Vec2.Dot(posA, sideNormal);    // 
+                        negSide = -side + hA.x;                     // 没搞懂
+                        posSide = side + hA.x;                      
                         negEdge = EdgeNumbers.EDGE2;
-                        posEdge = EdgeNumbers.EDGE4;
+                        posEdge = EdgeNumbers.EDGE4;                // 左边+右边
                         ComputeIncidentEdge(out incidentEdge, hB, posB, RotB, frontNormal);
                     }
                     break;
@@ -351,10 +366,12 @@ namespace bluebean.Box2DLite
                     }
                     break;
             }
-            foreach (var clipVertex in incidentEdge)
+            DebugDraw.Instance.DrawLine(incidentEdge[0].v, incidentEdge[1].v, Color.red);
+            /*foreach (var clipVertex in incidentEdge)
             {
-               DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(0.0f,0.5f,0,0.1f));
-            }
+               DebugDraw.Instance.DrawPoint(clipVertex.v+new Vec2(0.02f,0.02f), *//*Color.black*//*new Color(0, 0, 0, 0.2f));
+            }*/
+            
             //Step 3
             // clip other face with 5 box planes (1 face plane, 4 edge planes)
             //将incidentBox碰撞边数据根据referenceBox的两个裁剪边进行裁剪
@@ -367,15 +384,20 @@ namespace bluebean.Box2DLite
 
             if (np < 2)
                 return 0;
+            foreach (var clipVertex in clipPoints1)
+            {
+                DebugDraw.Instance.DrawPoint(clipVertex.v + new Vec2(0.05f, 0.05f), /*Color.white)*/new Color(1, 0, 0, 0.2f));
+            }
 
             // Clip to positive box side 1
             np = ClipSegmentToLine(clipPoints2, clipPoints1, sideNormal, posSide, posEdge);
 
             if (np < 2)
                 return 0;
+
             foreach (var clipVertex in clipPoints2)
             {
-                DebugDraw.Instance.DrawPoint(clipVertex.v, new Color(1, 0, 0, 0.5f));
+                DebugDraw.Instance.DrawPoint(clipVertex.v, /*Color.white)*/new Color(1,1,1,0.2f));
             }
             // Now clipPoints2 contains the clipping points.
             // Due to roundoff, it is possible that clipping removes all points.
@@ -383,7 +405,8 @@ namespace bluebean.Box2DLite
             int numContacts = 0;
             for (int i = 0; i < 2; ++i)
             {
-                 separation = Vec2.Dot(frontNormal, clipPoints2[i].v) - front;
+                float t = Vec2.Dot(frontNormal, clipPoints2[i].v);  // 计算裁剪面的2个点的分离值，他们以世界坐标系来参考的
+                 separation = t - front;                            // 半径-(分离轴上的点的投影)=分离轴距离
 
                 if (separation <= 0)
                 {
@@ -392,7 +415,7 @@ namespace bluebean.Box2DLite
                     contact.m_normal = normal;//由BodyA指向BodyB
                     // slide contact point onto reference face (easy to cull)
                     //接触点位于参考Box的表面
-                    contact.m_position = clipPoints2[i].v - frontNormal * separation;
+                    contact.m_position = clipPoints2[i].v - frontNormal * separation; // 知道分离轴距离 裁剪点-分离轴距离=对面的表面(B撞到A，那么碰撞点当然要在A上)
                     contact.m_feature = clipPoints2[i].feature;
                     if (axis == Axis.FACE_B_X || axis == Axis.FACE_B_Y)
                         Flip(ref contact.m_feature);

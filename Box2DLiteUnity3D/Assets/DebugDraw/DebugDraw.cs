@@ -47,6 +47,8 @@ namespace bluebean.Box2DLite
         private static DebugDraw m_instance = new DebugDraw();
         public static DebugDraw Instance { get { return m_instance; } }
 
+        
+
         /// <summary>
         /// 材质
         /// </summary>
@@ -136,6 +138,13 @@ namespace bluebean.Box2DLite
         {
             DebugDraw01.Instance.DrawLine(p1, p2, color);
             m_lineListBatch.Add(DDVertex.FromLine(p1, p2, color));
+        }
+
+        public void DrawNormal(Vec2 pos, Vec2 normal, Color color)
+        {
+            DebugDraw01.Instance.DrawNormal(pos,normal,color);
+            m_lineListBatch.Add(DDVertex.FromLine(pos, pos + normal, color));
+            m_vertexListBatch.Add(DDVertex.FromPoint(pos + normal, color));
         }
 
         public void DrawBox(Vec2 center, Vec2 size, float rotation, Color color)

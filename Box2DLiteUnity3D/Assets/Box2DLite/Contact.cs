@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Vec2 = UnityEngine.Vector2;
-
+using Color = UnityEngine.Color;
 namespace bluebean.Box2DLite
 {
     /// <summary>
@@ -54,5 +54,7 @@ namespace bluebean.Box2DLite
         public float m_bias;
         public float m_massNormal,m_massTangent;
         public FeaturePair m_feature;
+    
+        
     }
 }

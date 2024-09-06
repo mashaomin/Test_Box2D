@@ -1,8 +1,9 @@
 ﻿using bluebean.Box2DLite;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using UnityEngine;
-
+using Color = UnityEngine.Color;
 public class DebugDraw01 
 {
     #region
@@ -71,6 +72,12 @@ public class DebugDraw01
     public void DrawPoint(Vec2 point, Color color)
     {
         m_vertexListBatch.Add(DDVertex.FromPoint(point, color));
+    }
+
+    public void DrawNormal(Vec2 pos, Vec2 normal, Color color)
+    {
+        m_lineListBatch.Add(DDVertex.FromLine(pos, pos + normal, color));
+        m_vertexListBatch.Add(DDVertex.FromPoint(pos+ normal, color));
     }
 
     #endregion

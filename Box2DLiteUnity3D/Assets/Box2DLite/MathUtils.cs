@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace bluebean.Box2DLite
 {
+    [Serializable]
     public struct Vec2
     {
+        public static Vec2 Zero = new Vec2(0, 0);
+        public static Vec2 ZX = new Vec2(1, 0);
+        public static Vec2 ZY = new Vec2(0, 1);
         public float x, y;
 
         public Vec2(float _x, float _y)
