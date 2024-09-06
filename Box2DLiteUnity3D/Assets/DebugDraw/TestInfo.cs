@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using bluebean.Box2DLite;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,6 +22,8 @@ public class TestInfo : MonoBehaviour
     }
 
     public float Separation;
+    public Vec2 fa;
+    public Vec2 fb;
     // Start is called before the first frame update
     void Start()
     {
@@ -28,8 +31,9 @@ public class TestInfo : MonoBehaviour
     }
 
     // Update is called once per frame
-    void Update()
+    void OnGUI()
     {
-        
+        GUI.Label(new Rect(0, 0, 100, 50), fa.ToString());
+        GUI.Label(new Rect(0, 50, 100, 50), fb.ToString());
     }
 }

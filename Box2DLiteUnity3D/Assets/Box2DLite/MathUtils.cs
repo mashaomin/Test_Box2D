@@ -110,6 +110,10 @@ namespace bluebean.Box2DLite
             return a.x * b.y - a.y * b.x;
         }
 
+        public override string ToString()
+        {
+            return string.Format($"[{x.ToString("f3")},{y.ToString("f3")}]");
+        }
     }
 
     public struct Mat22

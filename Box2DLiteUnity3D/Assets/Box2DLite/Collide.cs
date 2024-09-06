@@ -239,17 +239,20 @@ namespace bluebean.Box2DLite
             float separation;
             Vec2 normal;
 
-            
+            TestInfo.Instance.fa = faceA;
+            TestInfo.Instance.fb = faceB;
             // Box A faces
             // 分离轴+分离距离+分离法线
             axis = Axis.FACE_A_X;
-            separation = faceA.x;
+            separation = faceA.x; // X轴上差距差距 --> FACE_A_X
             //B在A的右方，分离法线是A的X轴方向，由A指向B
             //或者B在A的左方，分离法线是A的-X轴方向，由A指向B
             normal = dA.x > 0.0f ? RotA.col1 : -RotA.col1;
 
             //const float relativeTol = 0.95f;
             //const float absoluteTol = 0.01f;
+
+            // 分别计算A的X边和Y边  B的X边和Y边的分离距离 FACE_A_X= 分离边 X的边 normal 就是边的垂直发现
 
             if (faceA.y > separation)
             //if (faceA.y > relativeTol * separation + absoluteTol * hA.y)
@@ -379,14 +382,14 @@ namespace bluebean.Box2DLite
             ClipVertex[] clipPoints2 = new ClipVertex[2];
             int np;
 
-            // Clip to negative box side 1
+            // Clip to negative box side 1 先左边 再右边
             np = ClipSegmentToLine(clipPoints1, incidentEdge, -sideNormal, negSide, negEdge);
 
             if (np < 2)
                 return 0;
             foreach (var clipVertex in clipPoints1)
             {
-                DebugDraw.Instance.DrawPoint(clipVertex.v + new Vec2(0.05f, 0.05f), /*Color.white)*/new Color(1, 0, 0, 0.2f));
+                DebugDraw.Instance.DrawPoint(clipVertex.v + new Vec2(0.05f, 0.05f), /*Color.Red)*/new Color(1, 0, 0, 0.2f));
             }
 
             // Clip to positive box side 1
