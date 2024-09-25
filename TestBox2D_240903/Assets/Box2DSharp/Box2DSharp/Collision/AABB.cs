@@ -65,7 +65,7 @@ namespace Box2DSharp.Collision
         }
 
         /// <summary>
-        ///     Get the perimeter length
+        ///     获取周长
         /// </summary>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -185,6 +185,7 @@ namespace Box2DSharp.Collision
             return true;
         }
 
+        // Left+right=得到一个新的AABB
         public static void Combine(in AABB left, in AABB right, out AABB aabb)
         {
             aabb = new AABB(

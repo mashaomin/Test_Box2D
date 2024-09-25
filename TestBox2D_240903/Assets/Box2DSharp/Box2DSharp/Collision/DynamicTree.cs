@@ -13,9 +13,15 @@ namespace Box2DSharp.Collision
 {
     /// <summary>
     /// https://blog.csdn.net/cg0206/article/details/8293049
+    /// https://github.com/Sopiro/DynamicBVH?tab=readme-ov-file
+    /// https://sopiro.github.io/DynamicBVH/
+    /// 1. 通过遍历树上的节点，对比AABB找到代价最小的节点A
+    /// 2. 将A作为兄弟节点，先建一个父节点N,将A的父节点设置为N，同时N将A和插入的节点节点L作为左右孩子节点连接起来
+    /// 3. 如果出现树不平衡,旋转动态树，使他成为新的平衡二叉树，
     /// </summary>
     public class DynamicTree
     {
+        #region 属性
         public const int NullNode = -1;
 
         private int _freeList;
@@ -27,7 +33,11 @@ namespace Box2DSharp.Collision
         private int _root;
 
         private TreeNode[] _treeNodes;
+        #endregion
 
+        #region public
+
+        #region public 增加CreateProxy/删除DestroyProxy/更新MoveProxy/查询Query/射线查询RayCast
         public DynamicTree()
         {
             _root = NullNode;
@@ -48,63 +58,6 @@ namespace Box2DSharp.Collision
             _treeNodes[_nodeCapacity - 1].Height = -1;
 
             _freeList = 0;
-        }
-
-        // 从内存池中申请一个及诶点，如果必要增大内存池
-        private int AllocateNode()
-        {
-            // Expand the node pool as needed.
-            if (_freeList == NullNode)
-            {
-                Debug.Assert(_nodeCount == _nodeCapacity);
-
-                // The free list is empty. Rebuild a bigger pool.
-                // 剩余节点为0,增加可用节点
-                var oldNodes = _treeNodes;
-                _nodeCapacity *= 2;
-
-                _treeNodes = ArrayPool<TreeNode>.Shared.Rent(_nodeCapacity);
-                Array.Copy(oldNodes, _treeNodes, _nodeCount);
-                Array.Clear(oldNodes, 0, _nodeCount);
-                ArrayPool<TreeNode>.Shared.Return(oldNodes);
-
-                // Build a linked list for the free list. The parent
-                // pointer becomes the "next" pointer.
-                for (var i = _nodeCount; i < _nodeCapacity; ++i)
-                {
-                    _treeNodes[i] = new TreeNode {Next = i + 1, Height = -1};
-                }
-
-                _treeNodes[_nodeCapacity - 1].Next = NullNode;
-                _treeNodes[_nodeCapacity - 1].Height = -1;
-                _freeList = _nodeCount;
-            }
-
-            // Peel a node off the free list.
-            var nodeId = _freeList;
-            _freeList = _treeNodes[nodeId].Next;
-            ref var newNode = ref _treeNodes[nodeId];
-            newNode.Parent = NullNode;
-            newNode.Child1 = NullNode;
-            newNode.Child2 = NullNode;
-            newNode.Height = 0;
-            newNode.UserData = null;
-            newNode.Moved = false;
-            ++_nodeCount;
-            return nodeId;
-        }
-
-        // 释放节点
-        private void FreeNode(int nodeId)
-        {
-            Debug.Assert(0 <= nodeId && nodeId < _nodeCapacity);
-            Debug.Assert(0 < _nodeCount);
-            ref var freeNode = ref _treeNodes[nodeId];
-            freeNode.Reset();
-            freeNode.Next = _freeList;
-            freeNode.Height = -1;
-            _freeList = nodeId;
-            --_nodeCount;
         }
 
         /// Create a proxy. Provide a tight fitting AABB and a userData pointer.
@@ -139,13 +92,20 @@ namespace Box2DSharp.Collision
         /// then the proxy is removed from the tree and re-inserted. Otherwise
         /// the function returns immediately.
         /// @return true if the proxy was re-inserted.
+        /// 如何减少动态树的更新频率
+        /// 在碰撞检测精度和更新频率之间做平衡
         public bool MoveProxy(int proxyId, in AABB aabb, in Vector2 displacement)
         {
+            // fatAABB：这是物体实际的膨胀包围盒，用于碰撞检测
+            // treeAABB：当前动态树中记录的物体的 AABB，它可能因为物体的快速移动而被扩展得较大
+            // hugeAABB：一个人为设定的更大的 AABB，用于检查当前的 treeAABB 是否已经过大。
+            // 如果 hugeAABB 包含 treeAABB，那么 treeAABB 还可以继续使用，否则需要更新或收缩。
             Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
 
             Debug.Assert(_treeNodes[proxyId].IsLeaf());
 
             // Extend AABB
+            // 容差区域(通常是为了给物体的运动留一些余地，避免物体小范围的移动时会频繁的更新树结构)
             var r = new Vector2(Settings.AABBExtension, Settings.AABBExtension);
             var fatAABB = new AABB
             {
@@ -206,34 +166,6 @@ namespace Box2DSharp.Collision
             proxyNode.Moved = true;
 
             return true;
-        }
-
-        /// Get proxy user data.
-        /// @return the proxy user data or 0 if the id is invalid.
-        public object GetUserData(int proxyId)
-        {
-            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
-            return _treeNodes[proxyId].UserData;
-        }
-
-        public bool WasMoved(int proxyId)
-        {
-            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
-            return _treeNodes[proxyId].Moved;
-        }
-        
-        public void ClearMoved(int proxyId)
-        {
-            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
-            _treeNodes[proxyId].Moved = false;
-        }
-
-        /// Get the fat AABB for a proxy.
-        /// 根据代理iD获取最大的AABB
-        public AABB GetFatAABB(int proxyId)
-        {
-            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
-            return _treeNodes[proxyId].AABB;
         }
 
         private readonly Stack<int> _queryStack = new Stack<int>(256);
@@ -375,7 +307,43 @@ namespace Box2DSharp.Collision
             }
         }
 
+        #endregion
+
+        #region public 
+
+        /// Get proxy user data.
+        /// @return the proxy user data or 0 if the id is invalid.
+        public object GetUserData(int proxyId)
+        {
+            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
+            return _treeNodes[proxyId].UserData;
+        }
+
+        public bool WasMoved(int proxyId)
+        {
+            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
+            return _treeNodes[proxyId].Moved;
+        }
+
+        public void ClearMoved(int proxyId)
+        {
+            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
+            _treeNodes[proxyId].Moved = false;
+        }
+
+        /// Get the fat AABB for a proxy.
+        /// 根据代理iD获取最大的AABB
+        public AABB GetFatAABB(int proxyId)
+        {
+            Debug.Assert(0 <= proxyId && proxyId < _nodeCapacity);
+            return _treeNodes[proxyId].AABB;
+        }
+
+        #endregion
+
+        #region public 
         /// Validate this tree. For testing.
+        // 验证动态树的完整性
         public void Validate()
         {
 #if b2DEBUG
@@ -461,6 +429,7 @@ namespace Box2DSharp.Collision
         }
 
         /// Build an optimal tree. Very expensive. For testing.
+        // 构建一颗最优的树、非常的昂贵，用于测试
         public void RebuildBottomUp()
         {
             var nodes = new int[_nodeCount];
@@ -547,10 +516,81 @@ namespace Box2DSharp.Collision
                 _treeNodes[i].AABB.UpperBound -= newOrigin;
             }
         }
+        #endregion
+        
+        #endregion
+
+        #region private
+
+        // 从内存池中申请一个及诶点，如果必要增大内存池
+        private int AllocateNode()
+        {
+            // Expand the node pool as needed.
+            if (_freeList == NullNode)
+            {
+                Debug.Assert(_nodeCount == _nodeCapacity);
+
+                // The free list is empty. Rebuild a bigger pool.
+                // 剩余节点为0,增加可用节点
+                var oldNodes = _treeNodes;
+                _nodeCapacity *= 2;
+
+                _treeNodes = ArrayPool<TreeNode>.Shared.Rent(_nodeCapacity);
+                Array.Copy(oldNodes, _treeNodes, _nodeCount);
+                Array.Clear(oldNodes, 0, _nodeCount);
+                ArrayPool<TreeNode>.Shared.Return(oldNodes);
+
+                // Build a linked list for the free list. The parent
+                // pointer becomes the "next" pointer.
+                for (var i = _nodeCount; i < _nodeCapacity; ++i)
+                {
+                    _treeNodes[i] = new TreeNode { Next = i + 1, Height = -1 };
+                }
+
+                _treeNodes[_nodeCapacity - 1].Next = NullNode;
+                _treeNodes[_nodeCapacity - 1].Height = -1;
+                _freeList = _nodeCount;
+            }
+
+            // Peel a node off the free list.
+            var nodeId = _freeList;
+            _freeList = _treeNodes[nodeId].Next;
+            ref var newNode = ref _treeNodes[nodeId];
+            newNode.Parent = NullNode;
+            newNode.Child1 = NullNode;
+            newNode.Child2 = NullNode;
+            newNode.Height = 0;
+            newNode.UserData = null;
+            newNode.Moved = false;
+            ++_nodeCount;
+            return nodeId;
+        }
+
+        // 释放节点
+        private void FreeNode(int nodeId)
+        {
+            Debug.Assert(0 <= nodeId && nodeId < _nodeCapacity);
+            Debug.Assert(0 < _nodeCount);
+            ref var freeNode = ref _treeNodes[nodeId];
+            freeNode.Reset();
+            freeNode.Next = _freeList;
+            freeNode.Height = -1;
+            _freeList = nodeId;
+            --_nodeCount;
+        }
 
         // 插入叶子结点
         private void InsertLeaf(int leaf)
         {
+            // 在插入一个新的叶子节点时，Box2D 会计算几个不同的成本：
+            // 1. 直接插入现有节点的成本（即创建一个新的父节点，将新节点和现有节点合并）。
+            // 2. 在某个现有分支的内部继续递归插入的成本。
+            // 计算代价:
+            // 1. combinedArea：这是合并两个 AABBs（轴对齐包围盒）后的总面积
+            // 2. 调整树结构的开销：当插入新节点时，如果需要创建新的内部节点或调整现有节点，会增加整体树的大小和复杂度。
+            // 2.0f 的存在是为了考虑插入一个新叶子节点时对动态树结构的双重影响
+            // 插入新节点会创建一个新的父节点，合并当前节点和新节点。
+            // 由于新节点的插入会对整体结构产生影响，双倍计算的代价函数可以更好地反映树的调整成本
             if (_root == NullNode)
             {
                 _root = leaf;
@@ -559,7 +599,9 @@ namespace Box2DSharp.Collision
             }
 
             // Find the best sibling for this node
+            // 为该节点找到最好的兄弟节点
             var leafAABB = _treeNodes[leaf].AABB;
+            // 获取根节点
             var index = _root;
             while (_treeNodes[index].IsLeaf() == false)
             {
@@ -567,12 +609,15 @@ namespace Box2DSharp.Collision
                 var child1 = indexNode.Child1;
                 var child2 = indexNode.Child2;
 
+                // 获取当前节点的AABB的周长
                 var area = indexNode.AABB.GetPerimeter();
-
+                // 当前节点+新节点得到一个联合节点
                 AABB.Combine(indexNode.AABB, leafAABB, out var combinedAABB);
+                // 联合节点的周长
                 var combinedArea = combinedAABB.GetPerimeter();
 
                 // Cost of creating a new parent for this node and the new leaf
+                // 为此节点和新叶子创建父节点成本
                 var cost = 2.0f * combinedArea;
 
                 // Minimum cost of pushing the leaf further down the tree
@@ -981,8 +1026,13 @@ namespace Box2DSharp.Collision
             ValidateMetrics(child1);
             ValidateMetrics(child2);
         }
+
+        #endregion
     }
 
+    /// <summary>
+    /// 树节点
+    /// </summary>
     public struct TreeNode
     {
         /// Enlarged AABB

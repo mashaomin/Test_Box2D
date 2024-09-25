@@ -32,7 +32,7 @@ namespace Box2DSharp.Collision
             var transformA = input.TransformA;
             var transformB = input.TransformB;
 
-            // Initialize the simplex.
+            // 初始化单纯形
             var simplex = new Simplex();
             simplex.ReadCache(
                 ref cache,
@@ -46,15 +46,15 @@ namespace Box2DSharp.Collision
             const int maxIters = 20;
 
             // These store the vertices of the last simplex so that we
-            // can check for duplicates and prevent cycling.
+            // can check for duplicates and prevent cycling.保存上次单纯形的顶点索引，用于检测重复
             Span<int> saveA = stackalloc int[3];
             Span<int> saveB = stackalloc int[3];
 
-            // Main iteration loop.
+            // 设定最大迭代次数，防止算法陷入无限循环
             var iter = 0;
             while (iter < maxIters)
             {
-                // Copy simplex so we can identify duplicates.
+                // 保存当前单纯形的顶点索引，以便之后检测重复
                 var saveCount = simplex.Count;
                 for (var i = 0; i < simplex.Count; ++i)
                 {
@@ -68,7 +68,7 @@ namespace Box2DSharp.Collision
                         break;
 
                     case 2:
-                        simplex.Solve2();
+                        simplex.Solve2(); 
                         break;
 
                     case 3:
@@ -79,13 +79,13 @@ namespace Box2DSharp.Collision
                         throw new ArgumentOutOfRangeException(nameof(simplex.Count));
                 }
 
-                // If we have 3 points, then the origin is in the corresponding triangle.
+                // 如果当前单纯形已经有 3 个顶点，则说明原点在三角形内，结束循环
                 if (simplex.Count == 3)
                 {
                     break;
                 }
 
-                // Get search direction.
+                // 获取下一步的搜索方向,根据线段AB 得到法向量，朝原点靠近
                 var d = simplex.GetSearchDirection();
 
                 // Ensure the search direction is numerically fit.
@@ -102,11 +102,15 @@ namespace Box2DSharp.Collision
 
                 // Compute a tentative new simplex vertex using support points.
                 ref var vertex = ref vertices[simplex.Count];
+                // 计算形状A 在方向-d上的支撑点 找到A的支撑点，再转成世界坐标
                 vertex.IndexA = proxyA.GetSupport(MathUtils.MulT(transformA.Rotation, -d));
                 vertex.Wa = MathUtils.Mul(transformA, proxyA.GetVertex(vertex.IndexA));
 
+                // 计算形状 B 在方向 d 上的支持点
                 vertex.IndexB = proxyB.GetSupport(MathUtils.MulT(transformB.Rotation, d));
                 vertex.Wb = MathUtils.Mul(transformB, proxyB.GetVertex(vertex.IndexB));
+
+                // 计算新支持点的向量
                 vertex.W = vertex.Wb - vertex.Wa;
 
                 // Iteration count is equated to the number of support point calls.
@@ -116,10 +120,11 @@ namespace Box2DSharp.Collision
                     ++gJkProfile.GjkIters;
                 }
 
-                // Check for duplicate support points. This is the main termination criteria.
+                // 检查是否有重复的支持点，这是 GJK 算法终止的主要条件
                 var duplicate = false;
                 for (var i = 0; i < saveCount; ++i)
                 {
+                    // 如果找到重复的支持点，退出循环避免无限循环
                     if (vertex.IndexA == saveA[i] && vertex.IndexB == saveB[i])
                     {
                         duplicate = true;
@@ -127,13 +132,13 @@ namespace Box2DSharp.Collision
                     }
                 }
 
-                // If we found a duplicate support point we must exit to avoid cycling.
+                // 如果发现重复点，退出循环
                 if (duplicate)
                 {
                     break;
                 }
 
-                // New vertex is ok and needed.
+                // 增加单纯形的顶点数
                 ++simplex.Count;
             }
 
@@ -142,15 +147,16 @@ namespace Box2DSharp.Collision
                 gJkProfile.GjkMaxIters = Math.Max(gJkProfile.GjkMaxIters, iter);
             }
 
-            // Prepare output.
-            simplex.GetWitnessPoints(out output.PointA, out output.PointB);
-            output.Distance = Vector2.Distance(output.PointA, output.PointB);
-            output.Iterations = iter;
+            // 准备输出结果
+            simplex.GetWitnessPoints(out output.PointA, out output.PointB);// 获取两个形状的最近点
+            output.Distance = Vector2.Distance(output.PointA, output.PointB);// 计算两点之间的距离
+            output.Iterations = iter;// 返回迭代次数
 
-            // Cache the simplex.
+            // 将当前单纯形写入缓存，以便下次加速计算
             simplex.WriteCache(ref cache);
 
-            // Apply radii if requested.
+            // 如果启用了半径修正，进一步调整最近点结果
+            // 如果这两个形状具有物理半径（如圆形或其他形状的边界），则需要对最近点的计算结果进行调整，以确保它们反映出实际的物理接触情况。
             if (input.UseRadii)
             {
                 if (output.Distance < Settings.Epsilon)

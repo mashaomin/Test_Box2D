@@ -81,6 +81,7 @@ namespace bluebean.Box2DLite
         public void Step(float deltaTime)
         {
             // Determine overlapping bodies and update contact points.
+            // 碰撞检测
             BroadPhase();
 
             // Integrate forces.
@@ -99,7 +100,7 @@ namespace bluebean.Box2DLite
             {
                 arbiter.PreStep(deltaTime);
             }
-
+            // 关节处理，先忽略
             for (int i = 0; i < m_joints.Count; ++i)
             {
                 m_joints[i].PreStep(deltaTime);

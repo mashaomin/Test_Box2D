@@ -5,12 +5,30 @@ using Box2DSharp.Common;
 
 namespace Box2DSharp.Collision
 {
+    /// <summary>
+    /// 1. 表示几何体
+    ///     Simplex 类用于表示一个简单的几何体（如点、线段或三角形）算法运行过程中逐步构建的，旨在包含原点（或最小距离）
+    /// 2. 支持点的管理
+    ///     支持点是用于构建 Simplex 的关键
+    /// 
+    /// Simplex 在 GJK 算法中用于存储当前计算过程中的几何体（点、线段或三角形），通过其顶点（Vertices）和顶点数量（Count）来逼近两个形状之间的最小距离
+    /// </summary>
     public struct Simplex
     {
+        /// <summary>
+        /// 一个固定大小为3的数组，用于存储Simplex中的顶点
+        /// Simplex最多由3个顶点组成：当 Count 为 1 时是点，2 时是线段，3 时是三角形
+        /// </summary>
         public FixedArray3<SimplexVertex> Vertices;
 
+        // 用于记录当前 Simplex 中的顶点数量
+        // Count 的范围是 1 到 3，表示当前几何体的复杂程度（点、线段或三角形）
+        // 2D的GJK 1=单个顶点 2=线段 3= 三角形 他们在
         public int Count;
 
+        /// <summary>
+        /// 
+        /// </summary>
         public void ReadCache(
             ref SimplexCache cache,
             in DistanceProxy proxyA,
@@ -69,106 +87,119 @@ namespace Box2DSharp.Collision
         public void WriteCache(ref SimplexCache cache)
         {
             cache.Metric = GetMetric();
-            cache.Count = (ushort) Count;
+            cache.Count = (ushort)Count;
             for (var i = 0; i < Count; ++i)
             {
-                cache.IndexA[i] = (byte) Vertices[i].IndexA;
-                cache.IndexB[i] = (byte) Vertices[i].IndexB;
+                cache.IndexA[i] = (byte)Vertices[i].IndexA;
+                cache.IndexB[i] = (byte)Vertices[i].IndexB;
             }
         }
 
-        // 主要决定从哪个方向去找顶点，通过计算，不断的调整查找的方向
+        /// <summary>
+        /// 主要决定从哪个方向去找顶点，通过计算，不断的调整查找的方向
+        /// </summary>
         public Vector2 GetSearchDirection()
         {
             switch (Count)
             {
-            case 1:
-                return -Vertices.Value0.W;
+                case 1://当只有一个顶点时，意味着这个顶点是距离原点（通常是形状间的接触点）最接近的点。为了找到距离这个点更远的支持点，必须朝着该点的外部方向进行搜索。
+                    return -Vertices.Value0.W; //返回第一个顶点的负向量作为搜索方向
 
-            case 2:
-            {
-                var e12 = Vertices.Value1.W - Vertices.Value0.W;
-                var sgn = MathUtils.Cross(e12, -Vertices.Value0.W);
-                if (sgn > 0.0f)
-                {
-                    // Origin is left of e12.
-                    return MathUtils.Cross(1.0f, e12);
-                }
+                case 2:
+                    {
+                        // 视频中的方法是A和BCross后得到他法向量，然后在通过这个法向量Cross A就得到了新方向
 
-                // Origin is right of e12.
-                return MathUtils.Cross(e12, 1.0f);
-            }
+                        // 计算从第一个顶点到第二个顶点的边向量
+                        var e12 = Vertices.Value1.W - Vertices.Value0.W;
+                        // 计算 e12 与第一个顶点的负向量的叉积，用于判断原点位置
+                        var sgn = MathUtils.Cross(e12, -Vertices.Value0.W);
+                        if (sgn > 0.0f)
+                        {
+                            // Origin is left of e12. 逆时针90度
+                            return MathUtils.Cross(1.0f, e12);
+                        }
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(Count));
+                        // Origin is right of e12. 顺时针90度
+                        return MathUtils.Cross(e12, 1.0f);
+                    }
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(Count));
             }
         }
 
-        // 获取一个单纯形最近的点
+        /// <summary>
+        /// 获取一个单纯形最近的点
+        /// </summary>
         public Vector2 GetClosestPoint()
         {
             switch (Count)
             {
-            case 1:
-                return Vertices.Value0.W;
+                case 1:
+                    return Vertices.Value0.W;
 
-            case 2:
-                return Vertices.Value0.A * Vertices.Value0.W + Vertices.Value1.A * Vertices.Value1.W;
+                case 2:
+                    return Vertices.Value0.A * Vertices.Value0.W + Vertices.Value1.A * Vertices.Value1.W;
 
-            case 3:
-                return Vector2.Zero;
+                case 3:
+                    return Vector2.Zero;
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(Count));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(Count));
             }
         }
 
-        // 主要获取两形状之间的见证点，所谓见证点，就是形成一个单纯形顶点的两个形状上的顶点
+        /// <summary>
+        /// 主要获取两形状之间的见证点，所谓见证点，就是形成一个单纯形顶点的两个形状上的顶点
+        /// </summary>
         public void GetWitnessPoints(out Vector2 pA, out Vector2 pB)
         {
             switch (Count)
             {
-            case 1:
-                pA = Vertices.Value0.Wa;
-                pB = Vertices.Value0.Wb;
-                break;
+                case 1:
+                    pA = Vertices.Value0.Wa;
+                    pB = Vertices.Value0.Wb;
+                    break;
 
-            case 2:
-                pA = Vertices.Value0.A * Vertices.Value0.Wa + Vertices.Value1.A * Vertices.Value1.Wa;
-                pB = Vertices.Value0.A * Vertices.Value0.Wb + Vertices.Value1.A * Vertices.Value1.Wb;
-                break;
+                case 2:
+                    pA = Vertices.Value0.A * Vertices.Value0.Wa + Vertices.Value1.A * Vertices.Value1.Wa;
+                    pB = Vertices.Value0.A * Vertices.Value0.Wb + Vertices.Value1.A * Vertices.Value1.Wb;
+                    break;
 
-            case 3:
-                pA = Vertices.Value0.A * Vertices.Value0.Wa
-                   + Vertices.Value1.A * Vertices.Value1.Wa
-                   + Vertices.Value2.A * Vertices.Value2.Wa;
-                pB = pA;
-                break;
+                case 3:
+                    pA = Vertices.Value0.A * Vertices.Value0.Wa
+                       + Vertices.Value1.A * Vertices.Value1.Wa
+                       + Vertices.Value2.A * Vertices.Value2.Wa;
+                    pB = pA;
+                    break;
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(Count));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(Count));
             }
         }
-        // 们将获取单纯形的距离或面积，作为判断是否需要更新缓存的一个条件
+
+        /// <summary>
+        /// 们将获取单纯形的距离或面积，作为判断是否需要更新缓存的一个条件
+        /// </summary>
         public float GetMetric()
         {
             switch (Count)
             {
-            case 0:
-                Debug.Assert(false);
-                return 0.0f;
+                case 0:
+                    Debug.Assert(false);
+                    return 0.0f;
 
-            case 1:
-                return 0.0f;
+                case 1:
+                    return 0.0f;
 
-            case 2:
-                return Vector2.Distance(Vertices.Value0.W, Vertices.Value1.W);
+                case 2:
+                    return Vector2.Distance(Vertices.Value0.W, Vertices.Value1.W);
 
-            case 3:
-                return MathUtils.Cross(Vertices.Value1.W - Vertices.Value0.W, Vertices.Value2.W - Vertices.Value0.W);
+                case 3:
+                    return MathUtils.Cross(Vertices.Value1.W - Vertices.Value0.W, Vertices.Value2.W - Vertices.Value0.W);
 
-            default:
-                throw new ArgumentOutOfRangeException(nameof(Count));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(Count));
             }
         }
 
@@ -195,6 +226,9 @@ namespace Box2DSharp.Collision
         // Solution
         // a1 = d12_1 / d12
         // a2 = d12_2 / d12
+        /// <summary>
+        /// 寻找原点位置的函数
+        /// </summary>
         public void Solve2()
         {
             ref var v0 = ref Vertices.Value0;
@@ -236,6 +270,9 @@ namespace Box2DSharp.Collision
         // - edge points[0]-points[2]
         // - edge points[1]-points[2]
         // - inside the triangle
+        /// <summary>
+        /// 寻找原点位置的函数
+        /// </summary>
         public void Solve3()
         {
             ref var v0 = ref Vertices.Value0;

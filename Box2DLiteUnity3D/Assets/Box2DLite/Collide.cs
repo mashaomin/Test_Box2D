@@ -404,7 +404,6 @@ namespace bluebean.Box2DLite
             }
             // Now clipPoints2 contains the clipping points.
             // Due to roundoff, it is possible that clipping removes all points.
-
             int numContacts = 0;
             for (int i = 0; i < 2; ++i)
             {

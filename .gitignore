@@ -5,6 +5,9 @@ Assembly-CSharp.csproj
 Assembly-CSharp-vs.csproj
 .vs/
 
+Exe/
+
+
 *.csproj
 *.unityproj
 *.sln

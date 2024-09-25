@@ -9,7 +9,6 @@ namespace Box2DSharp.Common
         public const float Pi = 3.14159265359f;
 
         public const float LengthUnitsPerMeter = 1.0f;
-
         // @file
         // Global tuning constants based on meters-kilograms-seconds (MKS) units.
 

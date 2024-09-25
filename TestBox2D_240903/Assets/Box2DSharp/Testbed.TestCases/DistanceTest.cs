@@ -28,7 +28,7 @@ namespace Testbed.TestCases
             {
                 _transformA.SetIdentity();
                 _transformA.Position.Set(0.0f, -0.2f);
-                _polygonA.SetAsBox(10.0f, 0.2f);
+                _polygonA.SetAsBox(10.0f, 2f);
             }
 
             {
@@ -36,7 +36,7 @@ namespace Testbed.TestCases
                 _angleB = -0.0109265f;
                 _transformB.Set(_positionB, _angleB);
 
-                _polygonB.SetAsBox(2.0f, 0.1f);
+                _polygonB.SetAsBox(2.0f, 1f);
             }
         }
 

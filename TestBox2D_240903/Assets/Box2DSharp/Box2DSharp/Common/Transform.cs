@@ -3,6 +3,9 @@ using System.Numerics;
 
 namespace Box2DSharp.Common
 {
+    /// <summary>
+    /// ³¯Ïò+Î»ÖÃ
+    /// </summary>
     public struct Transform : IFormattable
     {
         public Vector2 Position;
