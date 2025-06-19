@@ -14,7 +14,7 @@ namespace Testbed.TestCases
     [TestCase("Collision", "Dynamic Tree")]
     public class DynamicTree : TestBase, ITreeQueryCallback, ITreeRayCastCallback
     {
-        private const int ActorCount = 128;
+        private const int ActorCount = 6;
 
         private readonly Random _random = new Random(888);
 

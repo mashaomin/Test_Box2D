@@ -15,6 +15,10 @@ namespace Box2DSharp.Collision
     /// https://blog.csdn.net/cg0206/article/details/8293049
     /// https://github.com/Sopiro/DynamicBVH?tab=readme-ov-file
     /// https://sopiro.github.io/DynamicBVH/
+    /// Broad-phase
+    /// https://blog.csdn.net/m0_62389241/article/details/142252136?utm_medium=distribute.pc_relevant.none-task-blog-2~default~baidujs_baidulandingword~default-1-142252136-blog-142304250.235^v43^pc_blog_bottom_relevance_base9&spm=1001.2101.3001.4242.2&utm_relevant_index=4
+    /// 
+    /// 请联想一下四叉树
     /// 1. 通过遍历树上的节点，对比AABB找到代价最小的节点A
     /// 2. 将A作为兄弟节点，先建一个父节点N,将A的父节点设置为N，同时N将A和插入的节点节点L作为左右孩子节点连接起来
     /// 3. 如果出现树不平衡,旋转动态树，使他成为新的平衡二叉树，
@@ -609,6 +613,7 @@ namespace Box2DSharp.Collision
                 var child1 = indexNode.Child1;
                 var child2 = indexNode.Child2;
 
+			    
                 // 获取当前节点的AABB的周长
                 var area = indexNode.AABB.GetPerimeter();
                 // 当前节点+新节点得到一个联合节点

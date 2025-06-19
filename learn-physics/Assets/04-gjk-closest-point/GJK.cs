@@ -152,6 +152,7 @@ namespace Sample04
              *      L = B - A
              *      Q · L = 0
              *  因为Q是L上的点，可以用r1, r2来表示Q (r1 + r2 = 1)，则有: Q = A * r1 + B * r2
+             *      
              *      (A * r1 + B * r2) · L = 0
              *  用r2代替r1: r1 = 1 - r2
              *      (A - A * r2 + B * r2) · L = 0
@@ -160,6 +161,8 @@ namespace Sample04
              *      r2 = -(L · A) / (L · L)
              */
 
+
+            // Q = A * r1 + B * r2 + C // 只是因为正好经过了原点，所以C不需要了
             SupportPoint A = simplex.getSupport(0);
             SupportPoint B = simplex.getSupport(1);
 
@@ -177,6 +180,9 @@ namespace Sample04
                 float r1 = 1.0f - r2;
 
                 closestOnA = A.fromA * r1 + B.fromA * r2;
+                closestOnA = A.fromA * (1.0f-r2) + B.fromA * r2;
+                //  A.fromA- A.fromA*r2+B.fromA * r2
+                // A.fromA+(fromA*r2)
                 closestOnB = A.fromB * r1 + B.fromB * r2;
             }
         }
